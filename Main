@@ -1,0 +1,76 @@
+from lxml import objectify, etree
+import pandas as pd
+import copy
+import cv2
+import numpy as np
+import openslide
+def main():
+    #\\fatherserverdw\Q\research\images\CLUE\HE\healthy\XML\02 - 13098 - 1.xml  1.7kb
+    #\\fatherserverdw\Q\research\images\CLUE\HE\healthy\XML\02 - 13098 - 2.xml  5.3kb
+    #\\fatherserverdw\Q\research\images\CLUE\HE\healthy\XML copy2\02-10188-B.xml very small test file
+    #path = r"\\fatherserverdw\Q\research\images\CLUE\HE\healthy\XML\02-13098-1.xml"
+    path = r"\\fatherserverdw\Q\research\images\CLUE\2D sample quality evaluation\healthy\01-17300-A1.xml"
+    image = r"\\fatherserverdw\Q\research\images\CLUE\2D sample quality evaluation\healthy\01-17300-A1.ndpi"
+    #XMLParse(path)
+    mask(image)
+    return
+
+
+def XMLParse(XMLPath):
+    xml_data = get_objectify(XMLPath)
+    root = xml_data.getroot()  # Root element
+    data = []
+    index = []
+    listOfVertexes = []
+    cols = []
+    for child in root.getchildren():
+        for name in child.getiterator("Attribute"):
+            index.append(name.get("Name"))
+        for grandchild in child.getiterator("Regions"):
+            for vertices in grandchild.iter("Vertices"):
+                for vertex in vertices.iter():
+                    list1 = [vertex.get('X'), vertex.get('Y'), vertex.get('Z')]
+                    data.append(list1)
+                data.pop(0)
+                cols.append(copy.deepcopy(data))
+                data.clear()
+        listOfVertexes.append(copy.deepcopy(cols))
+        cols.clear()
+
+
+    print(listOfVertexes)
+    df = pd.DataFrame(listOfVertexes)
+    df.index = index
+    print(df)
+
+def get_etree(path_file):
+    return etree.parse(path_file, parser=etree.XMLParser(recover=True))
+
+def get_objectify(path_file):
+    return objectify.parse(path_file)
+
+
+def mask(path):
+    # Load image, create mask, and draw white circle on mask
+
+    image = openslide.OpenSlide(path)
+    #print(image.dimensions)
+    #print(image.dimensions[0])
+    a= image.level_dimensions[0]
+    b = image.level_dimensions[7]
+
+    #lastLevel = image.read_region((0,0), 0, a)
+    #lastLevel = np.asarray(lastLevel.convert('RGB'))
+    temp = image.read_region((0,0), 7, b)
+    tempA = image.read_region((0, 0), 0, a)
+    #temp.show()
+    print("hgere")
+    temp = np.asarray(tempA.convert('RGB'))
+    print(temp)
+
+
+#https://jeune-research.tistory.com/entry/OpenSlide-Python-for-HistoPahtology-Analysis
+
+
+if __name__ == "__main__":
+    main()
